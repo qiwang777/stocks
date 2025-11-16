@@ -1,5 +1,8 @@
 # PredictStockPrice — Stock Prediction Service (Spring Boot)
 
+<img width="1917" height="1017" alt="image" src="https://github.com/user-attachments/assets/ba24993e-1559-4e58-826f-e5262985dc55" />
+
+
 [![Maven Build](https://img.shields.io/badge/build-maven-blue)](https://maven.apache.org/)
 
 **Title**: PredictStockPrice — Stock Prediction Service
