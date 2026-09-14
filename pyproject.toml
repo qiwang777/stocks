@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "stock-predictor"
+version = "0.1.0"
+description = "Stock direction prediction with historical data and streaming quotes"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "uvicorn>=0.30,<1",
+  "pydantic>=2.10,<3",
+  "httpx>=0.27,<1",
+  "numpy>=1.26,<3",
+  "scikit-learn>=1.5,<2",
+  "python-dotenv>=1,<2",
+  "yfinance>=0.2.63,<0.3",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8,<10"]
+
+[project.scripts]
+stock-predictor = "stock_predictor.app:run"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["stock_predictor*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-p no:cacheprovider"
+norecursedirs = ["archive", ".git", ".venv", "__pycache__", "pytest-cache-files-*"]

@@ -1,0 +1,35 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: stock-predictor
+  mvc:
+    problemdetails:
+      enabled: true
+  cache:
+    cache-names: [symbols, models]
+    caffeine:
+      spec: maximumSize=500,expireAfterWrite=10m
+  ai:
+    openai:
+      api-key: 
+      chat:
+        options:
+          model: gpt-4o-mini
+          temperature: 0.2
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: [health, info, metrics]
+
+marketdata:
+  provider: alphaVantage # or finage
+  alphaVantage:
+    baseUrl: https://www.alphavantage.co
+    apiKey:  
+  finage:
+    baseUrl: https://api.finage.co.uk
+    apiKey: ${FINAGE_API_KEY:}
+

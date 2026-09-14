@@ -1,101 +1,128 @@
-# PredictStockPrice — Stock Prediction Service (Spring Boot)
+# Stock Predictor
 
-<img width="1917" height="1017" alt="image" src="https://github.com/user-attachments/assets/ba24993e-1559-4e58-826f-e5262985dc55" />
+Python 3.11+ service for stock direction predictions, historical bars and streaming
+quotes. FastAPI serves the API; scikit-learn trains the logistic regression model.
+The original Spring Boot project is preserved in [archive/java-stock-predictor](archive/java-stock-predictor/).
 
+## Setup
 
-[![Maven Build](https://img.shields.io/badge/build-maven-blue)](https://maven.apache.org/)
+Run from the repository root. A virtual environment is recommended:
 
-**Title**: PredictStockPrice — Stock Prediction Service
-
-**Objective**: Provide short-term stock movement predictions (direction + confidence) with optional LLM-style rationales, exposed via REST and streaming APIs.
-
-**Quick Overview**
-- **API base**: `/api/v1`
-- **Prediction**: `POST /api/v1/predict` — request body: `PredictionRequest` (JSON) — returns a `Prediction` (symbol, horizon, asOf, lastPrice, predictedMove, confidence, rationale).
-- **History**: `GET /api/v1/history?symbol=SYMBOL&range=3mo` — returns historical bars in `HistoryResponse`.
-- **Streaming quotes (SSE)**: `GET /api/v1/stream/quotes?symbol=SYMBOL` — Server-Sent Events (text/event-stream) emitting price ticks.
-
-**Project Structure (key files)**
-- `src/main/java/com/PredictStockPrice/stocks/web/PredictionController.java` — prediction REST endpoint.
-- `src/main/java/com/PredictStockPrice/stocks/web/HistoryController.java` — historical data endpoint.
-- `src/main/java/com/PredictStockPrice/stocks/web/StreamController.java` — SSE price stream.
-- `src/main/java/com/PredictStockPrice/stocks/service/PredictionService.java` — core prediction logic.
-- `src/main/java/com/PredictStockPrice/stocks/ml/FeatureEngineering.java` and `ml/SmileModel.java` — feature extraction and ML model usage.
-- `src/main/java/com/PredictStockPrice/stocks/data/MarketDataClient.java` — market data ingestion and streaming.
-- `src/main/java/com/PredictStockPrice/stocks/model/Prediction.java` — prediction DTO (includes optional `rationale`).
-
-**Build & Run (Windows PowerShell)**
 ```powershell
-.\mvnw.cmd package
-.\mvnw.cmd spring-boot:run
-# or, after package:
-java -jar target\*.jar
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e ".[test]"
+.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m stock_predictor
 ```
 
-**Example Requests**
-- Predict (JSON body):
-```bash
-curl -X POST http://localhost:8080/api/v1/predict \
-  -H "Content-Type: application/json" \
-  -d '{"symbol":"AAPL","horizon":"1d"}'
-```
-- History:
-```bash
-curl "http://localhost:8080/api/v1/history?symbol=AAPL&range=3mo"
-```
-- SSE stream (watch live ticks):
-```bash
-curl "http://localhost:8080/api/v1/stream/quotes?symbol=AAPL"
+With dependencies already installed, a source checkout also supports:
+
+```powershell
+python scripts/check_runtime.py
+python scripts/run_server.py
 ```
 
-**Configuration**
-- Application properties live in `src/main/resources/application.yml` and `application.properties` (see `WebClientConfig` and `SpringAiConfig` for external service hooks).
+The default address is http://127.0.0.1:8080, with interactive API documentation at
+http://127.0.0.1:8080/docs. `HOST` and `PORT` override the bind address.
+After installation, `stock-predictor` is also available as a console command.
+For development reload:
 
-**Value Proposition**
-- Demonstrates an end-to-end ML-enabled backend: data ingestion, feature engineering, model integration, scheduled retraining, REST + streaming interfaces, and optional explainability via `rationale` text.
-
-**Next steps / Suggestions**
-- Add README sections for deployment (Docker, Kubernetes) and environment variables.
-- Document `PredictionRequest` and `HistoryResponse` DTO shapes for easier API clients.
-- Add sample curl/Postman collection and a minimal front-end to demo the SSE stream.
-
-**DTO Examples**
-
-- `PredictionRequest` (request to `/api/v1/predict`):
-
-```json
-{
-  "symbol": "AAPL",
-  "horizon": "1d"
-}
+```powershell
+python -m uvicorn stock_predictor.app:create_app --factory --app-dir src --reload --port 8080
 ```
 
-- `HistoryResponse` (example structure returned from `/api/v1/history`):
+If the port is occupied, select another one using `PORT` or Uvicorn's `--port`.
 
-```json
-{
-  "symbol": "AAPL",
-  "interval": "1d",
-  "bars": [
-    { "time": "2025-11-14T00:00:00Z", "open": 174.0, "high": 176.0, "low": 172.5, "close": 175.2, "volume": 1200000 },
-    { "time": "2025-11-13T00:00:00Z", "open": 172.5, "high": 174.1, "low": 171.8, "close": 173.6, "volume": 980000 }
-  ]
-}
+## Configuration
+
+Settings read environment variables and an optional `.env` in the current working
+directory. Existing environment variables take precedence. See [.env.example](.env.example)
+for all settings. No API keys are required to start the service or run offline tests.
+The REST providers require their own credentials; yfinance does not use an API key.
+AI rationales require an optional OpenAI key. Edit the local `.env`, then restart
+the service to change the default provider or credentials. Each API call can
+override the default with `?datasource=yfinance`. See [provider setup](docs/providers.md).
+
+| Setting | Default |
+| --- | --- |
+| `HOST`, `PORT` | `127.0.0.1`, `8080` |
+| `MARKETDATA_PROVIDER` | `alphaVantage`; also `finage`, `yfinance`, `eodhd`, `massive`, `fmp` |
+| `MARKETDATA_AV_BASE`, `MARKETDATA_AV_KEY` | Alpha Vantage URL, empty key |
+| `MARKETDATA_FINAGE_BASE`, `MARKETDATA_FINAGE_KEY` | Finage URL, empty key |
+| `MARKETDATA_EODHD_BASE`, `MARKETDATA_EODHD_KEY` | `https://eodhd.com/api`, empty key |
+| `MARKETDATA_MASSIVE_BASE`, `MARKETDATA_MASSIVE_KEY` | `https://api.massive.com`, empty key |
+| `MARKETDATA_FMP_BASE`, `MARKETDATA_FMP_KEY` | `https://financialmodelingprep.com/stable`, empty key |
+| `MARKETDATA_POLL_SECONDS` | 3 seconds; increase to match your plan's rate limit |
+| `CACHE_TTL_SECONDS`, `CACHE_MAX_SIZE` | 600 seconds, 500 history entries |
+| `MODEL_RETRAIN_ENABLED` | `true` |
+| `MODEL_RETRAIN_SYMBOLS` | `AAPL,MSFT,NVDA,SPY` |
+| `OPENAI_API_KEY`, `OPENAI_MODEL` | empty key, `gpt-4o-mini` |
+| `OPENAI_BASE_URL`, `OPENAI_TEMPERATURE` | `https://api.openai.com/v1`, `0.2` |
+
+`FINAGE_API_KEY`, `SPRING_AI_OPENAI_API_KEY` and
+`SPRING_AI_OPENAI_CHAT_OPTIONS_MODEL` remain fallback environment variable names.
+Invalid settings such as a negative cache size fail during startup.
+
+## API
+
+| Method | Path | Input |
+| --- | --- | --- |
+| GET | `/api/v1/history` | `symbol=AAPL&range=3mo&datasource=yfinance` |
+| POST | `/api/v1/predict?datasource=yfinance` | `{"symbol":"AAPL","horizon":"1d"}` |
+| GET | `/api/v1/stream/quotes` | `symbol=AAPL&datasource=yfinance` |
+
+Prediction JSON retains `asOf`, `lastPrice`, and `predictedMove` for existing clients.
+`datasource` is optional and case-insensitive on all three endpoints. Supported
+values are `alphavantage`, `finage`, `yfinance`, `eodhd`, `massive`, and `fmp`.
+Unknown values return HTTP 422. History and prediction JSON include `dataSource`,
+a list of contributing providers (empty when no historical bars were returned).
+SSE keeps its numeric price messages and reports the selected provider in the
+`X-Data-Source` response header.
+Examples and the Postman collection remain in [examples](examples/).
+
+Confidence：
+0.0：几乎没有方向信心，说明模型接近 50/50
+0.2：略微偏向某个方向
+0.5：中等强度
+1.0：非常强，说明模型几乎确定了方向
+
+## Behavior And Limits
+
+- Each provider has a separate bounded 10-minute history cache and prediction models.
+- Predictions reuse in-memory models. Daily retraining replaces the default
+  provider's models at 08:05 UTC; other providers train on demand.
+- Run one server worker when using the embedded scheduler: each process owns its
+  own models, cache and scheduled job. Models are lost on restart.
+- SSE polls the selected provider every three seconds by default, controlled by
+  `MARKETDATA_POLL_SECONDS`. Quote availability and delay depend on the provider.
+- Alpha Vantage history still uses compact daily output; its `range` input does not
+  filter the data. The model predicts the next daily direction; `horizon` is not yet
+  a separate training target.
+- Upstream failures may return empty history or an unavailable rationale. An empty
+  response is not evidence of a working live data connection.
+- Empty or failed historical downloads are not cached. Missing REST API keys skip
+  requests; no automatic fallback to another provider occurs.
+- Offline tests validate software behavior, not investment performance or provider
+  access. There is no broker integration, backtest or persistent model store yet.
+
+## Layout
+
+```text
+src/stock_predictor/   Python application package
+  api/                HTTP routes and dependency accessors
+  core/               Validated configuration and history cache
+  data/               Market data clients and provider parsers
+    providers/        Alpha Vantage, Finage, Yahoo Finance, EODHD, Massive and FMP
+  ml/                 Technical features and logistic regression
+  services/           Prediction and rationale workflows
+  jobs/               Daily retraining lifecycle
+  app.py              Application factory and resource ownership
+  schemas.py          Shared bar and API data schemas
+tests/                Offline tests grouped by application responsibility
+scripts/              Source-checkout startup and runtime checks
+docs/                 Structure and verification notes
+examples/             Public API request/response examples
+archive/java-stock-predictor/  Original Java project and Maven tooling
 ```
 
-- `Prediction` (response from `/api/v1/predict`):
-
-```json
-{
-  "symbol": "AAPL",
-  "horizon": "1d",
-  "asOf": "2025-11-16T12:34:56Z",
-  "lastPrice": 175.20,
-  "predictedMove": "UP",
-  "confidence": 0.72,
-  "rationale": "Momentum indicators and recent volume spike suggest short-term upside."
-}
-```
-
----
-Generated from the project source in this repository.
+See [the file map](docs/structure.md) and [runtime verification](docs/runtime-status.md).

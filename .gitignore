@@ -23,6 +23,7 @@ target/
 /nbproject/private/
 /nbbuild/
 /dist/
+.cache/
 /nbdist/
 /.nb-gradle/
 build/
@@ -31,3 +32,16 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Python ###
+__pycache__/
+*.py[cod]
+.pytest_cache/
+pytest-cache-files-*/
+.venv/
+venv/
+*.egg-info/
+.env
+.env.*
+!.env.example
+/dist/
